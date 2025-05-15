@@ -6,7 +6,6 @@ import generate_chart
 import matplotlib.dates as mdates
 import numpy as np
 from scipy.stats import linregress
-import time
 
 app = Flask(__name__, static_folder='static')
 
@@ -33,84 +32,104 @@ def index():
 
 @app.route('/tqqq_chart')
 def get_chart():
-    if needs_update("static/tqqq_chart.svg"):
-        print("✅ チャートが古いため再生成します...")
-        generate_chart.generate_tqqq_chart()
-        for _ in range(5):
-            if os.path.exists("static/tqqq_chart.svg"):
-                break
-            time.sleep(0.5)  # 0.5秒待つ
-    else:
-        print("✅ チャートは最新。再生成しません。")
-    return send_from_directory('static', 'tqqq_chart.svg', mimetype='image/svg+xml')
+    try:
+        if needs_update("static/tqqq_chart.svg"):
+            print("✅ チャートが古いため再生成します...")
+            generate_chart.generate_tqqq_chart()
+        else:
+            print("✅ チャートは最新。再生成しません。")
+        return send_from_directory('static', 'tqqq_chart.svg', mimetype='image/svg+xml')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/tqqq_chart_log')
 def get_chart_log():
-    if needs_update("static/tqqq_chart_log.svg"):
-        print("✅ チャートが古いため再生成します...")
-        generate_chart.generate_tqqq_chart_log()
-        for _ in range(5):
-            if os.path.exists("static/tqqq_chart_log.svg"):
-                break
-            time.sleep(0.5)  # 0.5秒待つ
-    else:
-        print("✅ チャートは最新。再生成しません。")
-    return send_from_directory('static', 'tqqq_chart_log.svg', mimetype='image/svg+xml')
+    try:
+        if needs_update("static/tqqq_chart_log.svg"):
+            print("✅ チャートが古いため再生成します...")
+            generate_chart.generate_tqqq_chart_log()
+        else:
+            print("✅ チャートは最新。再生成しません。")
+        return send_from_directory('static', 'tqqq_chart_log.svg', mimetype='image/svg+xml')
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/latest_price')
 def latest_price():
-    with open('TQQQ_chart_data.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    with open('usd_jpy_rate.json', 'r', encoding='utf-8') as f:
-        usd_data = json.load(f)
+    try:
+        if not os.path.exists('TQQQ_chart_data.json'):
+            return jsonify({"error": "TQQQ_chart_data.json not found"}), 500
+        if not os.path.exists('usd_jpy_rate.json'):
+            return jsonify({"error": "usd_jpy_rate.json not found"}), 500
 
-    latest = data[-1]
-    price_usd = latest.get('Close') or latest.get('Adj Close') or latest.get("('Close', 'TQQQ')") or latest.get("('Adj Close', 'TQQQ')")
-    date = latest['Date']
-    price_jpy = price_usd * usd_data['usd_jpy']
+        with open('TQQQ_chart_data.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        with open('usd_jpy_rate.json', 'r', encoding='utf-8') as f:
+            usd_data = json.load(f)
 
-    return jsonify({
-        'date': date,
-        'price_usd': round(price_usd, 2),
-        'price_jpy': round(price_jpy)
-    })
+        latest = data[-1]
+        price_usd = latest.get('Close') or latest.get('Adj Close') or latest.get("('Close', 'TQQQ')") or latest.get("('Adj Close', 'TQQQ')")
+        date = latest['Date']
+        price_jpy = price_usd * usd_data['usd_jpy']
+
+        return jsonify({
+            'date': date,
+            'price_usd': round(price_usd, 2),
+            'price_jpy': round(price_jpy)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/forecast')
 def forecast():
-    with open('TQQQ_chart_data.json', 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    with open('usd_jpy_rate.json', 'r', encoding='utf-8') as f:
-        usd_data = json.load(f)
+    try:
+        if not os.path.exists('TQQQ_chart_data.json'):
+            return jsonify({"error": "TQQQ_chart_data.json not found"}), 500
+        if not os.path.exists('usd_jpy_rate.json'):
+            return jsonify({"error": "usd_jpy_rate.json not found"}), 500
 
-    dates = [datetime.strptime(item['Date'], '%Y-%m-%d') for item in data]
-    closes = [item.get('Close') or item.get('Adj Close') or item.get("('Close', 'TQQQ')") or item.get("('Adj Close', 'TQQQ')") for item in data]
+        with open('TQQQ_chart_data.json', 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        with open('usd_jpy_rate.json', 'r', encoding='utf-8') as f:
+            usd_data = json.load(f)
 
-    x = mdates.date2num(dates)
-    y = np.array(closes)
-    log_y = np.log(y)
-    slope, intercept, *_ = linregress(x, log_y)
+        dates = [datetime.strptime(item['Date'], '%Y-%m-%d') for item in data]
+        closes = [item.get('Close') or item.get('Adj Close') or item.get("('Close', 'TQQQ')") or item.get("('Adj Close', 'TQQQ')") for item in data]
 
-    latest_date = dates[-1]
-    forecast_date = latest_date + timedelta(days=365*15)
-    forecast_x = mdates.date2num(forecast_date)
-    forecast_price_usd = np.exp(intercept + slope * forecast_x)
-    forecast_price_jpy = forecast_price_usd * usd_data['usd_jpy']
+        x = mdates.date2num(dates)
+        y = np.array(closes)
+        log_y = np.log(y)
+        slope, intercept, *_ = linregress(x, log_y)
 
-    return jsonify({
-        'forecast_date': forecast_date.strftime('%Y-%m-%d'),
-        'forecast_price_usd': round(forecast_price_usd, 2),
-        'forecast_price_jpy': round(forecast_price_jpy)
-    })
+        latest_date = dates[-1]
+        forecast_date = latest_date + timedelta(days=365*15)
+        forecast_x = mdates.date2num(forecast_date)
+        forecast_price_usd = np.exp(intercept + slope * forecast_x)
+        forecast_price_jpy = forecast_price_usd * usd_data['usd_jpy']
+
+        return jsonify({
+            'forecast_date': forecast_date.strftime('%Y-%m-%d'),
+            'forecast_price_usd': round(forecast_price_usd, 2),
+            'forecast_price_jpy': round(forecast_price_jpy)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @app.route('/usd_jpy')
 def usd_jpy():
-    with open('usd_jpy_rate.json', 'r', encoding='utf-8') as f:
-        usd_data = json.load(f)
+    try:
+        if not os.path.exists('usd_jpy_rate.json'):
+            return jsonify({"error": "usd_jpy_rate.json not found"}), 500
 
-    return jsonify({
-        'date': usd_data['date'],
-        'usd_jpy': round(usd_data['usd_jpy'], 2)
-    })
+        with open('usd_jpy_rate.json', 'r', encoding='utf-8') as f:
+            usd_data = json.load(f)
+
+        return jsonify({
+            'date': usd_data['date'],
+            'usd_jpy': round(usd_data['usd_jpy'], 2)
+        })
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
