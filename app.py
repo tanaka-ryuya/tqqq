@@ -2,16 +2,19 @@ from flask import Flask, send_from_directory, jsonify
 from datetime import datetime, timezone, timedelta
 import os
 import json
-import generate_chart
-import matplotlib.dates as mdates
-import numpy as np
-from scipy.stats import linregress
 from flask_cors import CORS
 
-#app = Flask(__name__)
-
 app = Flask(__name__, static_folder='static')
-CORS(app)  # ← これを追加するだけ
+CORS(app)
+
+def lazy_imports():
+    global mdates, np, linregress, generate_chart
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.dates as mdates
+    import numpy as np
+    from scipy.stats import linregress
+    import generate_chart
 
 @app.after_request
 def add_cors_headers(response):
@@ -21,7 +24,6 @@ def add_cors_headers(response):
     return response
 
 def needs_update(file_path):
-    """ファイルの更新日が今日かどうかを判定"""
     if not os.path.exists(file_path):
         return True
     file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path), tz=timezone.utc)
@@ -44,6 +46,7 @@ def index():
 @app.route('/tqqq_chart')
 def get_chart():
     try:
+        lazy_imports()
         if needs_update("static/tqqq_chart.svg"):
             print("✅ チャートが古いため再生成します...")
             generate_chart.generate_tqqq_chart()
@@ -56,6 +59,7 @@ def get_chart():
 @app.route('/tqqq_chart_log')
 def get_chart_log():
     try:
+        lazy_imports()
         if needs_update("static/tqqq_chart_log.svg"):
             print("✅ チャートが古いため再生成します...")
             generate_chart.generate_tqqq_chart_log()
@@ -94,6 +98,7 @@ def latest_price():
 @app.route('/forecast')
 def forecast():
     try:
+        lazy_imports()
         if not os.path.exists('TQQQ_chart_data.json'):
             return jsonify({"error": "TQQQ_chart_data.json not found"}), 500
         if not os.path.exists('usd_jpy_rate.json'):
