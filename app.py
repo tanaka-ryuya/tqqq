@@ -8,11 +8,10 @@ import numpy as np
 from scipy.stats import linregress
 from flask_cors import CORS
 
-app = Flask(__name__)
-CORS(app)  # ← これを追加するだけ
+#app = Flask(__name__)
 
 app = Flask(__name__, static_folder='static')
-
+CORS(app)  # ← これを追加するだけ
 def needs_update(file_path):
     """ファイルの更新日が今日かどうかを判定"""
     if not os.path.exists(file_path):
