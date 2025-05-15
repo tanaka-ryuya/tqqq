@@ -12,6 +12,14 @@ from flask_cors import CORS
 
 app = Flask(__name__, static_folder='static')
 CORS(app)  # ← これを追加するだけ
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type,Authorization'
+    response.headers['Access-Control-Allow-Methods'] = 'GET,PUT,POST,DELETE,OPTIONS'
+    return response
+
 def needs_update(file_path):
     """ファイルの更新日が今日かどうかを判定"""
     if not os.path.exists(file_path):
