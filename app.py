@@ -6,6 +6,7 @@ import generate_chart
 import matplotlib.dates as mdates
 import numpy as np
 from scipy.stats import linregress
+import time
 
 app = Flask(__name__, static_folder='static')
 
@@ -35,6 +36,10 @@ def get_chart():
     if needs_update("static/tqqq_chart.svg"):
         print("✅ チャートが古いため再生成します...")
         generate_chart.generate_tqqq_chart()
+        for _ in range(5):
+            if os.path.exists("static/tqqq_chart.svg"):
+                break
+            time.sleep(0.5)  # 0.5秒待つ
     else:
         print("✅ チャートは最新。再生成しません。")
     return send_from_directory('static', 'tqqq_chart.svg', mimetype='image/svg+xml')
@@ -44,6 +49,10 @@ def get_chart_log():
     if needs_update("static/tqqq_chart_log.svg"):
         print("✅ チャートが古いため再生成します...")
         generate_chart.generate_tqqq_chart_log()
+        for _ in range(5):
+            if os.path.exists("static/tqqq_chart_log.svg"):
+                break
+            time.sleep(0.5)  # 0.5秒待つ
     else:
         print("✅ チャートは最新。再生成しません。")
     return send_from_directory('static', 'tqqq_chart_log.svg', mimetype='image/svg+xml')
