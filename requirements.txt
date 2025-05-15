@@ -4,3 +4,4 @@ matplotlib
 yfinance
 numpy
 scipy
+flask_cors

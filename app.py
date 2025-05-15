@@ -6,6 +6,10 @@ import generate_chart
 import matplotlib.dates as mdates
 import numpy as np
 from scipy.stats import linregress
+from flask_cors import CORS
+
+app = Flask(__name__)
+CORS(app)  # ← これを追加するだけ
 
 app = Flask(__name__, static_folder='static')
 
