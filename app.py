@@ -8,6 +8,14 @@ import tqqq
 app = Flask(__name__)
 CORS(app)
 
+def needs_update(file_path):
+    """ファイルの更新日が今日かどうか判定"""
+    if not os.path.exists(file_path):
+        return True
+    file_mtime = datetime.fromtimestamp(os.path.getmtime(file_path), tz=timezone.utc)
+    now = datetime.now(tz=timezone.utc)
+    return file_mtime.date() != now.date()
+
 @app.after_request
 def add_cors_headers(response):
     response.headers['Access-Control-Allow-Origin'] = '*'
@@ -29,8 +37,10 @@ def index():
 @app.route('/latest_price')
 def latest_price():
     try:
-        
-        tqqq.download_tqqq_data()
+        if needs_update('TQQQ_chart_data.json'):
+            tqqq.download_tqqq_data()
+        if needs_update('usd_jpy_rate.json'):
+            tqqq.download_usd_jpy_rate()
 
         with open('TQQQ_chart_data.json', 'r', encoding='utf-8') as f:
             data = json.load(f)
@@ -53,7 +63,8 @@ def latest_price():
 @app.route('/usd_jpy')
 def usd_jpy():
     try:
-        tqqq.download_usd_jpy_rate()
+        if needs_update('usd_jpy_rate.json'):
+            tqqq.download_usd_jpy_rate()
 
         with open('usd_jpy_rate.json', 'r', encoding='utf-8') as f:
             usd_data = json.load(f)
@@ -68,7 +79,8 @@ def usd_jpy():
 @app.route('/tqqq_data')
 def tqqq_data():
     try:
-        tqqq.download_tqqq_data()
+        if needs_update('TQQQ_chart_data.json'):
+            tqqq.download_tqqq_data()
 
         if not os.path.exists('TQQQ_chart_data.json'):
             return jsonify({"error": "TQQQ_chart_data.json not found"}), 500
@@ -83,4 +95,3 @@ def tqqq_data():
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
     app.run(debug=False, host='0.0.0.0', port=port)
-
