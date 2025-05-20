@@ -1,0 +1,9 @@
+https://tqqq-server.onrender.com/usd_jpyをフェッチすると
+{"date":"2025-05-15","usd_jpy":145.66}こういう形式でドル円のレートが得られる
+
+https://tqqq-server.onrender.com/latest_priceをフェッチすると
+{"date":"2025-05-14","price_jpy":10249,"price_usd":70.36}こういう形式で前日終値のドル円の値が得られる
+
+これをグラフのどこかに表示して。
+そして１５年後の予想価格もドルと円で表示して
+

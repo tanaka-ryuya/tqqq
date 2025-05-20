@@ -26,6 +26,26 @@
 **TQQQ**とは、NASDAQ100指数の**3倍の値動き**を目指す米国ETFである。  
 通常のNASDAQ100が1%上昇すれば、TQQQは理論上**3%上昇**する。  
 もちろん下落時も同様に3倍となるため**非常にハイリスク・ハイリターン**な投資商品である。
+チャートをみると下のような感じ。
+
+<h2>✅ TQQQチャート（普通スケール）</h2>
+
+<iframe src="https://enjaku.com/tqqq-graph.html" width="800" height="500" frameborder="0"></iframe>
+
+青い線がTQQQの終値を結んだもの。
+赤い線は私が期待してる成長の曲線。
+山が並んで、すさまじい暴投と暴落を繰り返してるように見える。
+がまぁいつのタイミングで見てもこんな感じである。
+対数グラフで表示するとよく見えてくる。
+
+<h2>✅ TQQQチャート（対数スケール）</h2>
+<iframe src="https://enjaku.com/tqqq-graph-log.html" width="800" height="600" frameborder="0"></iframe>
+
+対数グラフになると大体ずっと同じ直線の上を歩んでいるのがわかるだろう。
+このまま未来永劫進みそうではないか。
+未来もこうであってほしいものである。普通スケールでみているとすさまじい暴投と暴落に
+みえるが、対数グラフでみるといつもの変動にみえてくる。ちなみに
+このグラフでいくと今日の1万円が15年後2000万円になっている計算である。
 
 ## 夢の億万長者計画：TQQQシミュレーション
 
@@ -33,42 +53,21 @@
 
 **月々10万円 × 15年間 = 元本1,800万円**
 
-TQQQの過去の年平均成長率は**約40%**（実績ベースでは30～50%の範囲とも言われる）。  
+TQQQの過去の年平均成長率は**約46%**（実績ベースでは30～50%の範囲とも言われる）。  
 仮に**年平均25%で複利運用**できた場合  
 15年後には約**1億円**に達する計算となる。
+そして、なんと過去の成長が続いて46％の場合には
+15年後には約**3億円**に到達する。
 
-- 宝くじでは夢物語だった**1億円**が
+- 宝くじでは夢物語だった**3億円**が
 - 資産運用なら**現実味のある数値**として見えてくる。
 
-## AI × 自動化 × 投資の融合
 
-私はこの挑戦を**単なる机上の空論**に終わらせぬため  
-**Render × Flask × GitHub × WordPress × ChatGPT**  
-という最新の技術を組み合わせ  
-**「自動TQQQ資産レポートAPI」**を自作した。
 
-現在このページに表示されている
-
-- **TQQQ最新チャート**
-- **最新価格**
-- **15年後の予測価格**
-- **現在のドル円相場**
-
-はすべて私が構築した自動配信システムからリアルタイム取得されている。
-
-<h2>✅ TQQQチャート（自動更新）</h2>
-
-<canvas id="tqqqChart" width="800" height="400"></canvas>
-
-<h2>✅ TQQQチャート（自動更新）</h2>
-
-<canvas id="tqqqLogChart" width="800" height="400"></canvas>
 
 ## 最後に
 
-このブログでは、私のTQQQ投資の記録を**毎月・毎年アップデート**していく。
-
-**55歳までに1億円達成**  
+**55歳までに１億円達成**  
 👉 **その瞬間に会社を辞めることをここに宣言する。**
 
 読者諸君。  
@@ -77,6 +76,8 @@ TQQQの過去の年平均成長率は**約40%**（実績ベースでは30～50%�
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (async function() {
+    const infoDiv = document.getElementById("info");
+    infoDiv.innerHTML = "⏳ データ読み込み中...";
     const response = await fetch("https://tqqq-server.onrender.com/tqqq_data");
     const data = await response.json();
 
@@ -134,6 +135,9 @@ TQQQの過去の年平均成長率は**約40%**（実績ベースでは30～50%�
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 (async function() {
+    const infoDiv2 = document.getElementById("info");
+    infoDiv2.innerHTML = "⏳ データ読み込み中...";
+    // --- fetch メインデータ ---
     const response = await fetch("https://tqqq-server.onrender.com/tqqq_data");
     const data = await response.json();
 
@@ -166,16 +170,47 @@ TQQQの過去の年平均成長率は**約40%**（実績ベースでは30～50%�
     const extraDays = Math.round(365 * 15);
     const extendedNums = [...dateNums];
     const last = dateNums[dateNums.length - 1];
+
+    const lastDateStr = dates[dates.length - 1];
+    const lastDate = new Date(lastDateStr);
     for (let i = 1; i <= extraDays; i++) {
+        const futureDate = new Date(lastDate);
+        futureDate.setDate(futureDate.getDate() + i);
+        const yyyy = futureDate.getFullYear();
+        const mm = String(futureDate.getMonth() + 1).padStart(2, '0');
+        const dd = String(futureDate.getDate()).padStart(2, '0');
+        dates.push(`${yyyy}-${mm}-${dd}`);
         extendedNums.push(last + i);
-        dates.push("");
     }
 
     const regression = extendedNums.map(x => Math.exp(intercept + slope * x));
     const closesExtended = [...closes];
     for (let i = 0; i < extraDays; i++) closesExtended.push(null);
 
-    // 👇 WordPress複数ロード防止
+    // --- fetch ドル円 & 最新価格 ---
+    const [usdJpyRes, latestPriceRes] = await Promise.all([
+        fetch("https://tqqq-server.onrender.com/usd_jpy"),
+        fetch("https://tqqq-server.onrender.com/latest_price")
+    ]);
+    const usdJpyData = await usdJpyRes.json();
+    const latestPriceData = await latestPriceRes.json();
+
+    const usdJpy = usdJpyData.usd_jpy;
+    const latestUsd = latestPriceData.price_usd;
+    const latestJpy = latestPriceData.price_jpy;
+    const forecastUsd = regression[regression.length - 1];
+    const forecastJpy = forecastUsd * usdJpy;
+
+    // --- info表示 ---
+    const infoDiv = document.getElementById("info");
+    infoDiv.innerHTML = `
+        <b>📅 現在: ${usdJpyData.date}</b><br>
+        💱 ドル円: ${usdJpy.toFixed(2)}<br>
+        📊 前日終値: ${latestUsd.toFixed(2)} USD / ${latestJpy.toLocaleString()} 円<br>
+        🔮 15年後予測: ${forecastUsd.toFixed(2)} USD / ${Math.round(forecastJpy).toLocaleString()} 円
+    `;
+
+    // --- Chart描画 ---
     if (window.tqqqLogChartInstance) window.tqqqLogChartInstance.destroy();
     const ctx = document.getElementById('tqqqLogChart').getContext('2d');
     window.tqqqLogChartInstance = new Chart(ctx, {
@@ -202,5 +237,6 @@ TQQQの過去の年平均成長率は**約40%**（実績ベースでは30～50%�
             plugins: { legend: { display: true }, title: { display: true, text: 'TQQQ Log Chart with 15-Year Forecast' }}
         }
     });
+
 })();
 </script>
